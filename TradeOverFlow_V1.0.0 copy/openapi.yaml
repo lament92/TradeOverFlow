@@ -1,0 +1,338 @@
+openapi: 3.0.3
+info:
+  title: TradeOverflow API
+  description: A dynamic trading platform API for buying and selling items, as per the supplementary assessment requirements.
+  version: "1.0.0"
+servers:
+  - url: /prod
+
+paths:
+  /items:
+    post:
+      summary: List a new item for sale
+      description: Creates a new item listing in the appropriate trading set and selling group.
+      operationId: listItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewItemRequest'
+      responses:
+        '201':
+          description: Item listed successfully. Returns the full item object including its new ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /items/{itemId}/status:
+    get:
+      summary: Check the status of an item's listing
+      description: Returns whether the item is still listed or sold. If sold, it includes sale details.
+      operationId: getItemStatus
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The current status of the item.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemStatus'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /items/{itemId}/price:
+    put:
+      summary: Change the minimum selling price for an item
+      description: Updates the minimum selling price for an item that has not yet been sold.
+      operationId: updateItemPrice
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - new_price
+              properties:
+                new_price:
+                  type: number
+                  format: float
+                  description: "The new minimum selling price."
+      responses:
+        '200':
+          description: Price updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ConflictSold'
+
+  /bids:
+    post:
+      summary: Submit a bid for an item type
+      description: Submits a new purchase offer (bid) for a specific type of item.
+      operationId: submitBid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewBidRequest'
+      responses:
+        '201':
+          description: Bid submitted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bid'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  
+  /bids/{bidId}/status:
+    get:
+      summary: Check the status of a bid
+      description: Returns whether a bid is pending or successful. If successful, includes purchase details.
+      operationId: getBidStatus
+      parameters:
+        - name: bidId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The current status of the bid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidStatus'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /bids/{bidId}/price:
+    put:
+      summary: Change the maximum purchase price for a bid
+      description: Updates the maximum purchase price for a bid that has not yet been fulfilled.
+      operationId: updateBidPrice
+      parameters:
+        - name: bidId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - new_price
+              properties:
+                new_price:
+                  type: number
+                  format: float
+                  description: "The new maximum purchase price."
+      responses:
+        '200':
+          description: Bid price updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bid'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ConflictFulfilled'
+
+components:
+  schemas:
+    NewItemRequest:
+      type: object
+      required:
+        - item_type
+        - seller_id
+        - min_price
+      properties:
+        item_type:
+          type: string
+          description: "Type of the item, e.g., Dune-Bluray"
+        seller_id:
+          type: string
+          format: uuid
+        min_price:
+          type: number
+          format: float
+        
+    Item:
+      type: object
+      required:
+        - item_type
+        - seller_id
+        - min_price
+        - item_id
+        - status
+        - created_at
+      properties:
+        item_type:
+          type: string
+          description: "Type of the item, e.g., Dune-Bluray"
+        seller_id:
+          type: string
+          format: uuid
+        min_price:
+          type: number
+          format: float
+        item_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [LISTED, SOLD]
+        created_at:
+          type: string
+          format: date-time
+    
+    ItemStatus:
+      type: object
+      properties:
+        item_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [LISTED, SOLD]
+        sale_price:
+          type: number
+          format: float
+          description: "Present only if status is SOLD."
+        sale_date:
+          type: string
+          format: date-time
+          description: "Present only if status is SOLD."
+        buyer_id:
+          type: string
+          format: uuid
+          description: "Present only if status is SOLD."
+
+    NewBidRequest:
+      type: object
+      required:
+        - item_type
+        - buyer_id
+        - max_price
+      properties:
+        item_type:
+          type: string
+        buyer_id:
+          type: string
+          format: uuid
+        max_price:
+          type: number
+          format: float
+          
+    Bid:
+      type: object
+      required:
+        - item_type
+        - buyer_id
+        - max_price
+        - bid_id
+        - status
+        - created_at
+      properties:
+        item_type:
+          type: string
+        buyer_id:
+          type: string
+          format: uuid
+        max_price:
+          type: number
+          format: float
+        bid_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, SUCCESSFUL]
+        created_at:
+          type: string
+          format: date-time
+
+    BidStatus:
+      type: object
+      properties:
+        bid_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, SUCCESSFUL]
+        purchase_price:
+          type: number
+          format: float
+          description: "Present only if status is SUCCESSFUL."
+        purchase_date:
+          type: string
+          format: date-time
+          description: "Present only if status is SUCCESSFUL."
+        seller_id:
+          type: string
+          format: uuid
+          description: "Present only if status is SUCCESSFUL."
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+
+  responses:
+    NotFound:
+      description: The specified resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Invalid request payload.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ConflictSold:
+      description: Operation failed because the item has already been sold.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ConflictFulfilled:
+      description: Operation failed because the bid has already been fulfilled.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
