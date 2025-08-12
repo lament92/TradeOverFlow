@@ -8,10 +8,10 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1" # 重要提示：如果您的 Learner Lab 位于不同的区域，请更新此值。
+  region = "us-east-1" 
 }
 
-# --- 用于接收预先存在的角色 ARN 的变量 ---
+# --- Variable for receiving a pre-existing role ARN ---
 variable "lambda_execution_role_arn" {
   description = "The ARN of the pre-existing IAM role for Lambda execution in the Learner Lab."
   type        = string
@@ -66,10 +66,10 @@ resource "aws_dynamodb_table" "main" {
     hash_key        = "bid_id"
     projection_type = "ALL"
   }
-  # --- 新增的 GSI，用于查找活跃的交易集 ---
+  # --- New GSI for finding active trade sets ---
   global_secondary_index {
     name            = "StatusTypeIndex"
-    hash_key        = "status" # 例如 "LISTED" 或 "PENDING"
+    hash_key        = "status" # FOR EXAMPLE "LISTED" OR "PENDING"
     range_key       = "item_type"
     projection_type = "INCLUDE"
     non_key_attributes = ["item_type"]
@@ -78,11 +78,11 @@ resource "aws_dynamodb_table" "main" {
 
 
 # --------------------------------------------------------------
-# 2. IAM Role Section (已移除)
+# 2. IAM Role Section (DISPOSED)
 # --------------------------------------------------------------
 
 # --------------------------------------------------------------
-# 3. 为所有 7 个 Lambda 函数创建 ZIP 压缩包
+# 3. Create ZIP archives for all 7 Lambda functions
 # --------------------------------------------------------------
 data "archive_file" "list_item" {
   type        = "zip"
@@ -121,7 +121,7 @@ data "archive_file" "process_trades" {
 }
 
 # --------------------------------------------------------------
-# 4. 所有 7 个 Lambda 函数资源
+# 4. All 7 Lambda function resources
 # --------------------------------------------------------------
 resource "aws_lambda_function" "list_item" {
   function_name    = "${var.project_name}-listItem"
@@ -190,14 +190,14 @@ resource "aws_lambda_function" "process_trades" {
 
 
 # --------------------------------------------------------------
-# 5. API Gateway - 完整定义
+# 5. API Gateway - COMPLETELY DEFINITION
 # --------------------------------------------------------------
 resource "aws_api_gateway_rest_api" "main" {
   name        = "${var.project_name}-api"
   description = "TradeOverflow API"
 }
 
-# --- /items 资源 ---
+# --- /items Source ---
 resource "aws_api_gateway_resource" "items" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_rest_api.main.root_resource_id
@@ -218,7 +218,7 @@ resource "aws_api_gateway_integration" "items_post_lambda" {
   uri                     = aws_lambda_function.list_item.invoke_arn
 }
 
-# --- /items/{itemId} 资源 ---
+# --- /items/{itemId} Source ---
 resource "aws_api_gateway_resource" "items_item_id" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.items.id
@@ -267,7 +267,7 @@ resource "aws_api_gateway_integration" "items_item_id_price_put_lambda" {
   uri                     = aws_lambda_function.update_item_price.invoke_arn
 }
 
-# --- /bids 资源 ---
+# --- /bids Source ---
 resource "aws_api_gateway_resource" "bids" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_rest_api.main.root_resource_id
@@ -288,7 +288,7 @@ resource "aws_api_gateway_integration" "bids_post_lambda" {
   uri                     = aws_lambda_function.submit_bid.invoke_arn
 }
 
-# --- /bids/{bidId} 资源 ---
+# --- /bids/{bidId} Source ---
 resource "aws_api_gateway_resource" "bids_bid_id" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.bids.id
@@ -338,7 +338,7 @@ resource "aws_api_gateway_integration" "bids_bid_id_price_put_lambda" {
 }
 
 # --------------------------------------------------------------
-# 6. API Gateway 部署和阶段
+# 6. API Gateway Deployment and stage
 # --------------------------------------------------------------
 resource "aws_api_gateway_deployment" "main" {
   rest_api_id = aws_api_gateway_rest_api.main.id
@@ -365,7 +365,7 @@ resource "aws_api_gateway_stage" "prod" {
   stage_name    = "prod"
 }
 
-# --- 新增部分: Lambda 权限 ---
+# --- newly add section: lambda permission ---
 resource "aws_lambda_permission" "api_gw_list_item" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
@@ -411,7 +411,7 @@ resource "aws_lambda_permission" "api_gw_update_bid_price" {
 
 
 # --------------------------------------------------------------
-# 7. EventBridge 调度器用于持续匹配
+# 7. EventBridge Scheduler for continuous matching
 # --------------------------------------------------------------
 resource "aws_cloudwatch_event_rule" "every_minute" {
   name                = "${var.project_name}-every-minute-trigger"
@@ -434,7 +434,7 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_call_process_trades" {
 }
 
 # --------------------------------------------------------------
-# 8. 输出 API URL 用于脚本和测试
+# 8. Output the API URL for scripts and testing.
 # --------------------------------------------------------------
 output "invoke_url" {
   description = "Base URL for the API stage"
