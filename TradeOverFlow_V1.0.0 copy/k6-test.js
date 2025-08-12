@@ -1,12 +1,12 @@
 import http from 'k6/http';
 import { check, sleep, group } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
-// ---导入报告生成器 ---
+// ---import generator for report ---
 import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
 
-// 从命令行环境变量中读取 API URL
+// Read the API URL from the command-line environment variables.
 const API_BASE_URL = __ENV.API_URL;
 
 export const options = {
@@ -42,7 +42,7 @@ export const options = {
   },
 };
 
-// --- 测试函数定义 ---
+// --- test the definition function ---
 
 export function fullTradeLifecycle() {
   if (!API_BASE_URL) return;
@@ -135,10 +135,10 @@ export function errorConditions() {
     }
 }
 
-// ---k6 在测试结束时调用这个函数 ---
+// ---Call this function at the end of the k6 test ---
 export function handleSummary(data) {
   return {
-    "test-result.html": htmlReport(data), // 生成 HTML 报告
-    stdout: textSummary(data, { indent: " ", enableColors: true }), // 在控制台显示文本报告
+    "test-result.html": htmlReport(data), // generate HTML report
+    stdout: textSummary(data, { indent: " ", enableColors: true }), // Display a text report in the console.
   };
 }
